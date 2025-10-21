@@ -1,0 +1,159 @@
+<html lang="en">
+<head>
+    <title>Map Deschamps</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+	<link rel="stylesheet" href="leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+	<script src="leaflet.js"></script>
+	<script src="departements.geojson"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        .leaflet-container {
+            height: 1080px;
+            width: 1920px;
+            max-width: 100%;
+            max-height: 100%;
+        }
+		.legend {
+            padding: 6px 8px;
+            font: 12px Arial, Helvetica, sans-serif;
+            background: white; /* Fond blanc opaque (pour les navigateurs anciens) */
+            background: rgba(255, 255, 255, 0.8); /* Fond blanc semi-transparent (80% opaque) */
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+            line-height: 1.5;
+        }
+        .legend h4 {
+            margin: 0 0 5px;
+            color: #333;
+        }
+		.info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+	
+<h2 style="text-align:center;">Departements d'Auvergne - Rhône Alpes</h2>
+<div id="map"></div>
+<script>
+	const map = L.map('map').setView([45.43986050343245, 5.248147355993036], 7);
+	function getColor(code) {
+		return code === '01' ? '#9e0142' :
+           code === '03' ? '#d53e4f' :
+           code === '07' ? '#f46d43' :
+           code === '15' ? '#fdae61' :
+           code === '26' ? '#fee08b' :
+           code === '38' ? '#ffffbf' :
+           code === '42' ? '#e6f598' :
+           code === '43' ? '#abdda4' :
+           code === '63' ? '#66c2a5' :
+           code === '69' ? '#d1e5f0' :
+           code === '73' ? '#92c5de' :
+           code === '74' ? '#8073ac' :
+                           '#FFEDA0';}
+	function styleFeature(feature){
+		return {
+			fillColor: getColor(feature.properties.code),
+			weight: 1, 
+			opacity: 1, 
+			color: 'white', 
+			dashArray: '4', 
+			fillOpacity: 0.3 
+		};
+	}
+	L.geoJSON(departements, {style: styleFeature}).addTo(map);
+	const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		maxZoom: 19,
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+	}).addTo(map);
+	
+	function highlightFeature(e) {
+		const layer = e.target;
+		layer.setStyle({
+			weight: 3,
+			color: '#255',
+			dashArray: '',
+			fillOpacity: 0.5
+		});
+
+		layer.bringToFront();}
+    let geojsonLayer;
+
+    function resetHighlight(e) {
+        geojsonLayer.resetStyle(e.target);
+	}
+	
+	function onEachFeature(feature, layer) {
+		layer.on({
+			mouseover: highlightFeature, 
+			mouseout: resetHighlight,
+			click: zoomAndShowInfo
+		});
+	}
+    geojsonLayer = L.geoJSON(departements, {
+        style: styleFeature,      
+        onEachFeature: onEachFeature
+    }).addTo(map);
+	function zoomAndShowInfo(e) {
+        map.fitBounds(e.target.getBounds());
+        info.update(e.target.feature.properties);
+    }
+	const legend = L.control({position: 'bottomright'});
+
+    legend.onAdd = function (map) {
+        const div = L.DomUtil.create('div', 'legend');
+        let legendHTML = '<h4>Departements</h4>';	
+		if (departements && departements.features) {
+            departements.features.forEach(feature => {
+                const code = feature.properties.code;
+                const nom = feature.properties.nom;
+                legendHTML += `<div>${code} : ${nom}</div>`;
+            });
+        } else {
+            legendHTML += '<span>Données non chargées</span>';
+        }
+
+        div.innerHTML = legendHTML;
+        return div;
+    };
+    legend.addTo(map);
+	
+    let info;
+    info = L.control({position: 'topright'});
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info');
+        this.update();
+        return this._div;
+    };
+    info.update = function (props) {
+        if (props) {
+            this._div.innerHTML = `<h4>Informations</h4><b>${props.nom}</b><br />Code : ${props.code}`;
+        } else {
+            this._div.innerHTML = '<h4>Informations</h4>Cliquez sur un département';
+        }
+    };
+    info.addTo(map);
+</script>
+</body>
+
+</html>
